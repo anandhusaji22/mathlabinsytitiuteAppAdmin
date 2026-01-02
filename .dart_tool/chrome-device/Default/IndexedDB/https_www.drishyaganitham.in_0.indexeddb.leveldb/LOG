@@ -1,0 +1,4 @@
+2025/12/10-15:44:39.701 2438b Creating DB /private/var/folders/6t/dfjbtyn90n148ffdkw9rfxwc0000gn/T/flutter_tools.1jwRcV/flutter_tools_chrome_device.gUDwEZ/Default/IndexedDB/https_www.drishyaganitham.in_0.indexeddb.leveldb since it was missing.
+2025/12/10-15:44:39.703 2438b Reusing MANIFEST /private/var/folders/6t/dfjbtyn90n148ffdkw9rfxwc0000gn/T/flutter_tools.1jwRcV/flutter_tools_chrome_device.gUDwEZ/Default/IndexedDB/https_www.drishyaganitham.in_0.indexeddb.leveldb/MANIFEST-000001
+2025/12/10-15:44:39.883 24397 Manual compaction at level-0 from '\x00\x02\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x03\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/12/10-15:44:43.184 24397 Manual compaction at level-0 from '\x00\x04\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x05\x00\x00\x00' @ 0 : 0; will stop at (end)
