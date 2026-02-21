@@ -351,67 +351,60 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         isLoading = false;
       });
-      if (response.body.toString() ==
-          "\"The username or password is incorrect\"") {
+      String body = response.body.toString();
+      if (body == "\"The username or password is incorrect\"") {
         ShowToast(
             title: "Invalid Credentials",
             body: "username or password is incorrect");
-      } else if (response.body.toString() == "Multiple Login Detected") {
-        // ShowToast(title: "Already Logined", body: "Please retry to login");
-        tryLog(email, password);
-      } else {
-        try {
-        var js = json.decode(response.body);
+      } else if (body == "Multiple Login Detected" ||
+          body.startsWith("Multiple Login Detected")) {
+        // Response may be "Multiple Login Detected" or that + JSON; retry once
+        if (body.length > "Multiple Login Detected".length) {
+          body = body.substring("Multiple Login Detected".length).trim();
+        } else {
+          tryLog(email, password);
+          return;
+        }
+      }
+      // Parse JSON (body may be full response or just the JSON part after "Multiple Login Detected")
+      try {
+        int jsonStart = body.indexOf('{');
+        if (jsonStart >= 0) {
+          body = body.substring(jsonStart);
+        }
+        var js = json.decode(body) as Map<String, dynamic>;
         SharedPreferences preferences = await SharedPreferences.getInstance();
-        // Convert token to string regardless of API response type (int or string)
-          // Handle both int and string token types from API
-          String tokenValue = "";
-          if (js["token"] != null) {
-            try {
-              if (js["token"] is int) {
-                tokenValue = (js["token"] as int).toString();
-              } else if (js["token"] is String) {
-                tokenValue = js["token"] as String;
-              } else {
-                tokenValue = js["token"].toString();
-              }
-            } catch (e) {
-              print("Error parsing token: $e");
-              // Fallback: try to convert to string
-              tokenValue = js["token"].toString();
-            }
-          }
-          
-          if (tokenValue.isEmpty) {
-            ShowToast(
-              title: "Error",
-              body: "Failed to get authentication token",
-            );
-            return;
-          }
-          
+        // Token from API is always string; avoid any int cast
+        String tokenValue = "";
+        if (js["token"] != null) {
+          Object? t = js["token"];
+          tokenValue = t is String ? t : t.toString();
+        }
+        if (tokenValue.isEmpty) {
+          ShowToast(
+            title: "Error",
+            body: "Failed to get authentication token",
+          );
+          return;
+        }
         preferences.setString("TOKEN", tokenValue);
         preferences.setString("LOGIN", "IN");
         preferences.setString("EMAIL", email);
         token = tokenValue;
-          // Add a small delay to ensure token is set before navigation
-          await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(Duration(milliseconds: 100));
         Get.to(() => HomeScreen(),
-            duration: Duration(
-              milliseconds: 500,
-            ),
+            duration: Duration(milliseconds: 500),
             transition: Transition.zoom);
-        } catch (e) {
-          print("Error parsing login response: $e");
-          print("Response body: ${response.body}");
-          ShowToast(
-            title: "Error",
-            body: "Failed to parse login response. Please try again.",
-          );
-          setState(() {
-            isLoading = false;
-          });
-        }
+      } catch (e) {
+        print("Error parsing login response: $e");
+        print("Response body: ${response.body}");
+        ShowToast(
+          title: "Error",
+          body: "Failed to parse login response. Please try again.",
+        );
+        setState(() {
+          isLoading = false;
+        });
       }
     }
   }

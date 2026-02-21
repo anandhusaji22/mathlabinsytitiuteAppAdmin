@@ -78,20 +78,38 @@ class AdminSettingsController extends GetxController {
     update();
   }
 
-  // Add Slider Image
-  Future<bool> addSliderImage(String? imagePath) async {
+  // Add Slider Image (optional: title, short_description, display_order)
+  Future<bool> addSliderImage(
+    String? imagePath, {
+    String? title,
+    String? shortDescription,
+    int? displayOrder,
+  }) async {
     try {
       final dio = Request.Dio();
       Request.FormData formData = Request.FormData();
-      
+
+      if (title != null && title.isNotEmpty) formData.fields.add(MapEntry('title', title));
+      if (shortDescription != null && shortDescription.isNotEmpty) {
+        formData.fields.add(MapEntry('short_description', shortDescription));
+      }
+      if (displayOrder != null) formData.fields.add(MapEntry('display_order', displayOrder.toString()));
+
       if (imagePath != null && imagePath.isNotEmpty) {
         if (kIsWeb && imagePath.startsWith("WEB_FILE:")) {
           final firstColonIndex = imagePath.indexOf(":");
           final secondColonIndex = imagePath.indexOf(":", firstColonIndex + 1);
           if (secondColonIndex > firstColonIndex) {
             final filename = imagePath.substring(firstColonIndex + 1, secondColonIndex);
-            final base64Bytes = imagePath.substring(secondColonIndex + 1);
-            final bytes = base64Decode(base64Bytes);
+            String base64Payload = imagePath.substring(secondColonIndex + 1);
+            // Handle data URL (e.g. data:image/png;base64,iVBORw0KGgo...)
+            if (base64Payload.startsWith('data:')) {
+              final commaIndex = base64Payload.indexOf(',');
+              if (commaIndex >= 0 && commaIndex < base64Payload.length - 1) {
+                base64Payload = base64Payload.substring(commaIndex + 1);
+              }
+            }
+            final bytes = base64Decode(base64Payload);
             formData.files.add(MapEntry(
               'images',
               Request.MultipartFile.fromBytes(bytes, filename: filename),
@@ -117,7 +135,46 @@ class AdminSettingsController extends GetxController {
       }
       return false;
     } catch (e) {
-      print("Error adding slider image: $e");
+      String msg = "Error adding slider image: $e";
+      if (e is Request.DioException && e.response != null) {
+        final data = e.response!.data;
+        if (data is Map && data['detail'] != null) {
+          msg = data['detail'].toString();
+        } else if (data is String) {
+          msg = data;
+        }
+      }
+      print(msg);
+      Get.snackbar("Slider image", msg, snackPosition: SnackPosition.BOTTOM);
+      return false;
+    }
+  }
+
+  // Update Slider Image (title, short_description, display_order)
+  Future<bool> updateSliderImage(
+    int imagesId, {
+    String? title,
+    String? shortDescription,
+    int? displayOrder,
+  }) async {
+    try {
+      final body = <String, dynamic>{};
+      if (title != null) body['title'] = title;
+      if (shortDescription != null) body['short_description'] = shortDescription;
+      if (displayOrder != null) body['display_order'] = displayOrder;
+
+      final response = await http.patch(
+        Uri.parse("$endpoint/users/sliderimageadd/$imagesId"),
+        headers: AuthHeader,
+        body: json.encode(body),
+      );
+      if (response.statusCode == 200) {
+        await loadSliderImages();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print("Error updating slider image: $e");
       return false;
     }
   }
